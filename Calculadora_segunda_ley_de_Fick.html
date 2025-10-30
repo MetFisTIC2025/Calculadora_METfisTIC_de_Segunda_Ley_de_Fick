@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de la Segunda Ley de Fick</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script> 
+
+    <style>
+        /* Estilos generales */
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12pt;
+            background-color: #f4f7f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px; /* Ancho reducido para un aspecto más compacto */
+            margin: 0 auto;
+            background-color: #ffffff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            padding: 0;
+        }
+
+        /* Estilos de Pestañas (Secciones Paralelas) */
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #007bff;
+        }
+
+        .tab-button {
+            padding: 15px 30px;
+            cursor: pointer;
+            background-color: #f1f1f1;
+            border: none;
+            outline: none;
+            transition: background-color 0.3s, color 0.3s;
+            font-weight: bold;
+            font-size: 14pt;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+            flex-grow: 1;
+            text-align: center;
+        }
+
+        .tab-button:hover {
+            background-color: #e0e0e0;
+        }
+
+        .tab-button.active {
+            background-color: #007bff;
+            color: white;
+            border-bottom: 2px solid #007bff;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 25px;
+            border-top: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Estilos de la Calculadora */
+        .calculator-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr; /* Dos columnas para los inputs */
+            gap: 15px 20px; /* Reducir gap */
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #e0e0e0; /* Borde más suave */
+            padding: 10px;
+            border-radius: 4px;
+            background-color: #fdfdfd;
+        }
+
+        .input-group label {
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 0.9em; /* Más pequeño para claridad */
+            color: #555;
+        }
+
+        .input-group input, .input-group select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 11pt; /* Tamaño de fuente ligeramente reducido */
+            box-sizing: border-box; /* Incluir padding y border en el ancho/alto */
+        }
+
+        .input-inline {
+            display: flex;
+            gap: 8px; /* Espacio reducido */
+            align-items: center;
+        }
+
+        .input-inline input {
+            flex-grow: 1;
+        }
+
+        #unknown-selector, #calculate-btn {
+            padding: 10px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14pt;
+            transition: background-color 0.3s;
+            width: 100%; /* Botones de ancho completo */
+            margin-top: 10px;
+        }
+
+        #calculate-btn:hover {
+            background-color: #218838;
+        }
+
+        #results {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            font-size: 14pt;
+            font-weight: bold;
+            border-left: 5px solid #007bff;
+            text-align: center; /* Centrar resultados */
+        }
+        
+        /* Estilo específico para la ecuación de la calculadora (NO LATEX, solo HTML/CSS) */
+        #equation-display, .math-equation {
+            font-family: 'Arial', sans-serif; 
+            font-size: 1.1em;
+            background-color: #fff;
+            padding: 15px 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-top: 10px;
+            text-align: center;
+            overflow-x: auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .fraction-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0 5px;
+        }
+
+        .numerator {
+            font-size: 1.1em;
+        }
+        
+        .denominator {
+            font-size: 1.1em;
+        }
+        
+        .fraction-line {
+            border-top: 2px solid #333;
+            width: 100%;
+            margin: 2px 0;
+        }
+        
+        .erf-argument {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            margin-left: 10px;
+            min-width: 80px; /* Ancho mínimo para la fracción interna */
+        }
+
+        /* Estilo para las ecuaciones de la teoría (LATEX) */
+        .theory-equation-container {
+            font-family: 'Arial', sans-serif;
+            font-size: 1.1em;
+            padding: 15px 0;
+            margin: 10px 0;
+            text-align: center;
+            /* Usamos display:block para que MathJax pueda renderizar bien las fórmulas */
+            display: block; 
+            font-weight: bold;
+            background-color: #f8f8ff; 
+            border-radius: 4px;
+            border: 1px dashed #ccc;
+        }
+        
+        /* Estilo para las variables individuales en texto normal (subíndices, etc.) */
+        .variable-name {
+            font-style: italic;
+            font-weight: bold;
+        }
+
+
+        /* Grafica y su contenedor */
+        .graph-section {
+            margin-top: 30px; /* Espacio superior para separar de la calculadora */
+            padding-top: 20px;
+            border-top: 1px solid #eee; /* Separador */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Contenedor de la gráfica para controlar sus dimensiones */
+        .chart-container {
+            position: relative;
+            width: 100%; /* Ocupa el 100% del ancho disponible en su padre */
+            max-width: 600px; /* Ancho máximo de la gráfica */
+            height: 350px; /* Altura fija para la gráfica */
+            margin: 0 auto; /* Centrar el contenedor de la gráfica */
+        }
+
+        #fick-chart {
+            width: 100% !important; /* Sobreescribir el ancho para ajustarse al contenedor */
+            height: 100% !important; /* Sobreescribir la altura para ajustarse al contenedor */
+        }
+
+        #graph-interaction {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            width: 100%;
+            max-width: 580px; /* Ajustar al ancho de la gráfica */
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        #graph-interaction .input-group {
+            border: none;
+            background-color: transparent;
+            padding: 0;
+            margin: 0;
+        }
+        #graph-interaction .input-inline {
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+        #graph-interaction button {
+            padding: 8px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12pt;
+        }
+        #graph-interaction button:hover {
+            background-color: #0056b3;
+        }
+        #check-result {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+
+        /* Estilos de la Teoría */
+        .theory-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ccc;
+        }
+        
+        .theory-tab-button {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        
+        .theory-tab-button.active {
+            border-bottom: 3px solid #007bff;
+            background-color: #e9ecef;
+        }
+
+        .theory-content {
+            padding: 15px 0;
+        }
+        
+        .theory-content h3 {
+            color: #007bff;
+            margin-top: 25px;
+            margin-bottom: 15px;
+        }
+
+        /* Estilo para imágenes */
+        .theory-content figure {
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .theory-content img {
+            max-width: 80%; /* Hacer las imágenes un poco más pequeñas */
+            height: auto;
+            display: block;
+            margin: 0 auto; /* Centrar imágenes */
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        .theory-content figcaption {
+            font-style: italic;
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 8px;
+        }
+
+        /* Estilo del Mensaje Final */
+        .footer-message {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+            border-radius: 4px;
+            text-align: center;
+            font-style: italic;
+            font-size: 0.9em; /* Un poco más pequeño */
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="tabs">
+            <button class="tab-button active" onclick="openTab(event, 'calculator')">Calculadora y Gráfica</button>
+            <button class="tab-button" onclick="openTab(event, 'theory')">Teoría y Aplicaciones Metalúrgicas</button>
+            <button class="tab-button" onclick="openTab(event, 'manual')">Manual de Uso</button>
+        </div>
+
+        <div id="calculator" class="tab-content active">
+            <h2>⚛️ Calculadora de la Segunda Ley de Fick (Difusión No Estacionaria)</h2>
+            <p>Ecuación utilizada:</p>
+            <div id="equation-display">
+                <span class="fraction-group">
+                    <span class="numerator">(C<sub>s</sub> - C<sub>x</sub>)</span>
+                    <span class="fraction-line"></span>
+                    <span class="denominator">(C<sub>s</sub> - C<sub>0</sub>)</span>
+                </span>
+                
+                <span style="margin: 0 10px;">= erf [ </span>
+                
+                <span class="erf-argument">
+                    <span class="numerator">X</span>
+                    <span class="fraction-line"></span>
+                    <span class="denominator">2√(<span style="text-decoration:overline;">D &middot; t</span>)</span>
+                </span>
+                
+                <span style="margin: 0 5px;">]</span>
+            </div>
+            <label for="unknown-selector">Seleccione la variable incógnita:</label>
+            <select id="unknown-selector" onchange="actualizarInterfaz()">
+                <option value="">-- Seleccionar incógnita --</option>
+                <option value="Cx">Concentración, C<sub>x</sub> (%átomos)</option>
+                <option value="Cs">Concentración superficial, C<sub>s</sub> (%átomos)</option>
+                <option value="C0">Concentración inicial, C<sub>0</sub> (%átomos)</option>
+                <option value="X">Distancia, X</option>
+                <option value="D">Difusividad, D</option>
+                <option value="t">Tiempo, t</option>
+            </select>
+            
+            <hr style="margin: 20px 0; border-top: 1px solid #eee;">
+
+            <div class="calculator-grid" id="input-fields">
+                
+                <div class="input-group" id="group-Cs">
+                    <label for="Cs">Concentración superficial, C<sub>s</sub> (%átomos):</label>
+                    <input type="text" id="Cs" placeholder="Ej: 1.5 o 1,5">
+                </div>
+
+                <div class="input-group" id="group-C0">
+                    <label for="C0">Concentración inicial, C<sub>0</sub> (%átomos):</label>
+                    <input type="text" id="C0" placeholder="Ej: 0.2 o 0,2">
+                </div>
+
+                <div class="input-group" id="group-Cx">
+                    <label for="Cx">Concentración a X, C<sub>x</sub> (%átomos):</label>
+                    <input type="text" id="Cx" placeholder="Ej: 0.8 o 0,8">
+                </div>
+
+                <div class="input-group" id="group-X">
+                    <label for="X">Distancia, X:</label>
+                    <div class="input-inline">
+                        <input type="text" id="X" placeholder="Ej: 2e-4">
+                        <select id="unit-X">
+                            <option value="m">metros (m)</option>
+                            <option value="cm">centímetros (cm)</option>
+                            <option value="mm">milímetros (mm)</option>
+                            <option value="pies">pies (ft)</option>
+                            <option value="pulgadas">pulgadas (in)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="input-group" id="group-D">
+                    <label for="D">Difusividad, D (m²/s):</label>
+                    <input type="text" id="D" placeholder="Ej: 3e-11">
+                    <small style="margin-top: 5px; text-align: right;">¿Necesita D? <a href="https://metfistic2025.github.io/Calculadora_METfisTIC_de_difusion/" target="_blank">Calculadora de Difusión</a></small>
+                </div>
+
+                <div class="input-group" id="group-t">
+                    <label for="t">Tiempo, t:</label>
+                    <div class="input-inline">
+                        <input type="text" id="t" placeholder="Ej: 10">
+                        <select id="unit-t">
+                            <option value="s">segundos (s)</option>
+                            <option value="min">minutos (min)</option>
+                            <option value="h">horas (h)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="output-unit-selection" style="margin-bottom: 20px; display: none;">
+                <label for="output-unit">Unidad para la incógnita:</label>
+                <select id="output-unit"></select>
+            </div>
+
+            <button id="calculate-btn" onclick="calcular()">Calcular</button>
+            <div id="results"></div>
+
+            <div class="graph-section">
+                <h3>Perfil de Concentración (C vs X)</h3>
+                <div class="chart-container">
+                    <canvas id="fick-chart"></canvas>
+                </div>
+                <div id="graph-interaction">
+                    <p>Analizar punto específico en el perfil:</p>
+                    <div class="input-inline">
+                        <div class="input-group">
+                            <label for="check-X">Distancia X:</label>
+                            <input type="text" id="check-X" placeholder="Distancia">
+                        </div>
+                        <div class="input-group">
+                            <label for="check-C">Concentración C<sub>x</sub>:</label>
+                            <input type="text" id="check-C" disabled placeholder="%átomos">
+                        </div>
+                    </div>
+                    <button onclick="checkPoint()">Ver concentración en X</button>
+                    <p id="check-result"></p>
+                </div>
+            </div>
+        </div>
+
+        <div id="theory" class="tab-content">
+            <h2>📚 Teoría y Aplicaciones de la Segunda Ley de Fick</h2>
+            
+            <div class="theory-tabs">
+                <button class="theory-tab-button active" onclick="openTheoryTab(event, 'teoria')">Teoría Fundamento</button>
+                <button class="theory-tab-button" onclick="openTheoryTab(event, 'aplicaciones')">Aplicaciones Metalúrgicas</button>
+            </div>
+            
+            <div id="teoria" class="theory-content active">
+                <h3>Fundamento de la Segunda Ley de Fick</h3>
+                
+                <p>La Segunda Ley de Fick es esencial para describir la difusión no estacionaria (transitoria), donde el flujo difusivo (<span class="variable-name">J</span>) y el gradiente de concentración cambian con el tiempo. Esta ley establece que la tasa de cambio de la concentración (<span class="variable-name">C</span>) en un punto es directamente proporcional a la curvatura del perfil de concentración en ese mismo punto. Matemáticamente, se expresa mediante la siguiente ecuación diferencial:</p>
+                
+                <div class="theory-equation-container">
+                    $$\frac{\partial C}{\partial t} = D \frac{\partial^2 C}{\partial x^2}$$
+                </div>
+                <p>En esta ecuación, <span class="variable-name">C</span> representa la concentración, <span class="variable-name">t</span> el tiempo, <span class="variable-name">x</span> la distancia, y <span class="variable-name">D</span> el coeficiente de difusividad (<span class="variable-name">m</span>²/s). El término <span class="variable-name">∂C/∂t</span> indica cómo varía la concentración con el tiempo, mientras que <span class="variable-name">∂²C/∂x²</span> es la segunda derivada que define la curvatura del perfil de concentración.</p>
+                
+                <p>Para casos prácticos, como la difusión en un sólido semi-infinito con una concentración superficial constante (<span class="variable-name">C<sub>s</sub></span>) modelo clave en tratamientos termoquímicos como la cementación, la solución particular de esta ecuación diferencial es la siguiente:</p>
+
+                <div class="theory-equation-container">
+                    $$\frac{C_s - C_x}{C_s - C_0} = \text{erf}\left(\frac{x}{2\sqrt{Dt}}\right)$$
+                </div>
+                <p>Esta solución es la base de la calculadora y permite relacionar la concentración <span class="variable-name">C<sub>x</sub></span> a una profundidad <span class="variable-name">x</span> y un tiempo <span class="variable-name">t</span>, con respecto a la concentración superficial <span class="variable-name">C<sub>s</sub></span> y la concentración inicial del material <span class="variable-name">C<sub>0</sub></span>.</p>
+                
+                <h4>El Perfil de Concentración (C vs X)</h4>
+                <figure>
+                    <img src="https://www.lifeder.com/wp-content/uploads/2020/12/Representacion-2da-ley-de-Fick-618x420.jpg" alt="Gráfica de perfil de concentración de la Segunda Ley de Fick">
+                    <figcaption>Representación del perfil de concentración para diferentes tiempos de difusión (<span class="variable-name">t₁</span> &lt; <span class="variable-name">t₂</span> &lt; <span class="variable-name">t₃</span>). </figcaption>
+                </figure>
+                <p>La gráfica del perfil de concentración ilustra la distribución del elemento difusor (<span class="variable-name">C</span>) en función de la distancia (<span class="variable-name">x</span>) desde la superficie. Se observa una curva característica en forma de "S" invertida (o función sigmoide), donde la concentración es máxima en la superficie (<span class="variable-name">C<sub>s</sub></span>) y disminuye de forma no lineal hasta alcanzar la concentración inicial del material (<span class="variable-name">C<sub>0</sub></span>) a una profundidad dada. A medida que aumenta el tiempo de difusión, la curva se desplaza hacia la derecha, indicando que el elemento ha penetrado a mayor profundidad en el material.</p>
+
+
+                <h4>La Función de Error ($\text{erf}(z)$)</h4>
+                <p>La función de error, denotada como <span class="variable-name">erf(z)</span>, es una integral fundamental que surge de la solución de la ecuación diferencial de Fick. Es la responsable de la forma curva y no lineal del perfil de concentración. Su valor depende del argumento <span class="variable-name">z</span>, que es una variable adimensional que combina la distancia, el tiempo y la difusividad.</p>
+                
+                <figure>
+                    <img src="https://image3.slideserve.com/5858618/valores-de-la-funci-n-de-error-l.jpg" alt="Tabla de valores de la función de error (erf(z))">
+                    <figcaption>Tabla de valores de la función de error (<span class="variable-name">erf(z)</span>) para diferentes valores de <span class="variable-name">z</span>. Esta tabla es esencial para realizar cálculos manuales o para la interpolación utilizada por esta calculadora, ya que la función no tiene una solución analítica directa. </figcaption>
+                </figure>
+                
+                <p>El argumento <span class="variable-name">z</span> en nuestra solución de Fick se define como:</p>
+                
+                <div class="theory-equation-container">
+                    $$z = \frac{x}{2\sqrt{Dt}}$$
+                </div>
+                <p>Debido a que esta integral no posee una solución analítica sencilla, sus valores son obtenidos a partir de tablas precalculadas, como la mostrada. Para el funcionamiento de esta calculadora, se emplea el método de interpolación lineal para encontrar el valor exacto del <span class="variable-name">erf(z)</span> (si se calcula <span class="variable-name">C<sub>x</sub></span>, <span class="variable-name">C<sub>s</sub></span>, o <span class="variable-name">C<sub>0</sub></span>) o para obtener el valor de <span class="variable-name">z</span> (si se calculan <span class="variable-name">x</span>, <span class="variable-name">D</span>, o <span class="variable-name">t</span>).</p>
+                
+                <h4>Enlace de Ayuda</h4>
+                <p>Si desea una explicación adicional del tema, este video fue de gran utilidad para entender el concepto:</p>
+                <p><a href="https://www.youtube.com/watch?v=6pAbWGyFj-k" target="_blank">Video Explicativo: Segunda Ley de Fick - YouTube</a></p>
+
+            </div>
+            
+            <div id="aplicaciones" class="theory-content">
+                <h3>Utilidades en la Ingeniería Metalúrgica</h3>
+                <p>La Segunda Ley de Fick es el pilar para el diseño y control de los procesos termoquímicos en la metalurgia, cuyo fin es modificar la composición química superficial de un material para mejorar propiedades cruciales como la dureza, la resistencia al desgaste y la resistencia a la fatiga. El control de la difusión (a través de <span class="variable-name">D</span>, <span class="variable-name">t</span> y la temperatura) es vital para lograr la profundidad de la capa deseada.</p>
+
+                <h4>1. Cementación (Carburización)</h4>
+                <p>Este proceso se utiliza para infundir carbono en la superficie del acero a altas temperaturas, produciendo una capa exterior dura (la capa cementada) sobre un núcleo más blando y tenaz. La ecuación de Fick es indispensable para calcular la profundidad de la capa cementada.</p>
+                
+                <figure>
+                    <img src="https://blog.utp.edu.co/metalografia/files/2013/05/Diagrama-Fe-C.jpg" alt="Diagrama de Fases Hierro-Carburo de Hierro (Fe-Fe₃C)">
+                    <figcaption>Diagrama Hierro-Carburo de Hierro (<span class="variable-name">Fe-Fe₃C</span>), clave para definir la temperatura de cementación. </figcaption>
+                </figure>
+                <p>El tratamiento de cementación se lleva a cabo dentro de la región de austenita gamma, típicamente entre 900°C y 950 °C, rango que se identifica en el diagrama anteriormente mostrado. Se elige esta temperatura porque la estructura cristalina FCC de la austenita permite que el coeficiente de difusividad (<span class="variable-name">D</span>) del carbono aumente drásticamente, facilitando una rápida penetración. El acero se expone a un medio carburizante (sólido, líquido o gaseoso) que mantiene la concentración superficial (<span class="variable-name">C<sub>s</sub></span>) constante, forzando la difusión del carbono hacia el interior según la ley de Fick.</p>
+                
+                <figure>
+                    <img src="https://sudosilo.com/wp-content/uploads/2020/10/Cementacion2.jpg" alt="Engranes, ejemplos de piezas cementadas.">
+                    <figcaption>Engranes, ejemplos de piezas típicamente sometidas a cementación para mejorar su resistencia al desgaste superficial. </figcaption>
+                </figure>
+                <figure>
+                    <img src="http://img.youtube.com/vi/VYkNfXXlK1A/0.jpg" alt="Piezas de engranajes post-tratamiento de cementación.">
+                    <figcaption>Piezas de engranajes después del tratamiento termoquímico de cementación y posterior temple, con una capa cementada dura. </figcaption>
+                </figure>
+                <figure>
+                    <img src="https://www.researchgate.net/profile/Oscar-Rios-Diez/publication/349636737/figure/download/fig1/AS:995482327334912@1614352890093/Figura-3-Metalografias-acero-AISI-SAE-1020-a-Estado-de-entrega-b-Rampa-de.jpg" alt="Micrografía de acero cementado mostrando transición de alto a bajo carbono.">
+                    <figcaption>Micrografía de un acero cementado. La imagen muestra la transición gradual de una zona de alto carbono (superficie) a la zona de bajo carbono (núcleo), siendo la posición de esta transición la que define la profundidad de la capa cementada. </figcaption>
+                </figure>
+
+                <h4>2. Nitruración y Carbonitruración</h4>
+                <p>En la Nitruración, se difunde nitrógeno en la superficie del acero para formar nitruros duros, típicamente a temperaturas inferiores (490 °C - 550 °C) a las usadas en cementación. En la Carbonitruración, se difunden simultáneamente carbono y nitrógeno.</p>
+                
+                <p>En ambos casos, el control de la profundidad de la capa endurecida se modela y predice a través de soluciones análogas basadas en los principios de la Segunda Ley de Fick, permitiendo predecir el perfil de concentración de cada elemento y la cinética de la formación de la capa de nitruros.</p>
+                
+                <figure>
+                    <img src="https://tse3.mm.bing.net/th/id/OIP.1UeH4Z7m1W36Oa3gOxVdVQAAAA?pid=Api&P=0&h=180" alt="Micrografía de una capa nitrurada 1.">
+                    <figcaption>Micrografía de una capa nitrurada mostrando la capa blanca superficial y la zona de difusión inferior. </figcaption>
+                </figure>
+                
+                <figure>
+                    <img src="https://tse2.mm.bing.net/th/id/OIP.T28v88IaWpnnFSq97YnTVwHaFk?pid=Api&P=0&h=180" alt="Micrografía de una capa nitrurada 2.">
+                    <figcaption>Otra micrografía de una capa nitrurada, resaltando la capa compuesta y la capa de difusión en el material base. </figcaption>
+                </figure>
+
+                <h4>3. Otros Procesos de Aleación Superficial</h4>
+                <p>La Ley de Fick aplica a cualquier tratamiento que involucre el transporte de masa a través de un gradiente de concentración (por ejemplo, boruración, aluminización o siliconización). Estos principios permiten a los ingenieros predecir el espesor de la capa de aleación formada y calcular el tiempo de tratamiento requerido para asegurar la calidad y durabilidad del componente.</p>
+            </div>
+        </div>
+
+        <div id="manual" class="tab-content">
+            <h2>📝 Manual de Uso</h2>
+            <p>Este programa está diseñado para calcular las variables de difusión a partir de la Segunda Ley de Fick para el caso de concentración superficial constante. Siga las siguientes instrucciones para un uso óptimo.</p>
+            
+            <h3>1. Interfaz y Navegación</h3>
+            <ul>
+                <li>La aplicación se divide en tres secciones (Calculadora, Teoría y Manual) a las que puede acceder haciendo clic en las pestañas superiores.</li>
+                <li>Dentro de la sección de Teoría, encontrará pestañas para el fundamento teórico y las aplicaciones metalúrgicas.</li>
+            </ul>
+
+            <h3>2. Uso de la Calculadora</h3>
+            <p>El funcionamiento se basa en la ecuación de la solución de Fick:</p>
+            <div class="theory-equation-container">
+                 $$\frac{C_s - C_x}{C_s - C_0} = \text{erf}\left(\frac{x}{2\sqrt{Dt}}\right)$$
+            </div>
+
+            <h4>Paso a Paso:</h4>
+            <ol>
+                <li>Seleccionar la Incógnita: Utilice el selector principal para elegir la variable que desea calcular (<span class="variable-name">C<sub>s</sub></span>, <span class="variable-name">C<sub>0</sub></span>, <span class="variable-name">C<sub>x</sub></span>, <span class="variable-name">x</span>, <span class="variable-name">D</span>, <span class="variable-name">t</span>). Al seleccionarla, su campo de entrada se ocultará y aparecerá la opción para elegir su unidad de salida (si aplica).</li>
+                <li>Ingresar Datos Conocidos: Complete los campos de entrada restantes.</li>
+                <li>Formato de Datos:
+                    <ul>
+                        <li>Decimales: Debe usar la coma (,) como separador decimal (ej: <span class="variable-name">0,5</span> en lugar de <span class="variable-name">0.5</span>).</li>
+                        <li>Notación Científica: Utilice la letra e para la notación científica (ej: <span class="variable-name">3 &times; 10⁻¹¹</span> se escribe como <span class="variable-name">3e-11</span>).</li>
+                    </ul>
+                </li>
+                <li>Unidades:
+                    <ul>
+                        <li>Las concentraciones (<span class="variable-name">C<sub>s</sub></span>, <span class="variable-name">C<sub>0</sub></span>, <span class="variable-name">C<sub>x</sub></span>) siempre se ingresan en %átomos.</li>
+                        <li>La Difusividad (<span class="variable-name">D</span>) debe ingresarse en m²/s. Si desconoce este valor, se proporciona un enlace a una calculadora auxiliar.</li>
+                    </ul>
+                </li>
+                <li>Unidad de Salida: Si la incógnita es <span class="variable-name">x</span> o <span class="variable-name">t</span>, seleccione la unidad deseada para el resultado final en la lista desplegable que aparecerá.</li>
+                <li>Calcular: Presione el botón Calcular para obtener el resultado y generar la gráfica de perfil de concentración.</li>
+            </ol>
+
+            <h3>3. Análisis de la Gráfica</h3>
+            <ul>
+                <li>La gráfica de Concentración (<span class="variable-name">C</span>) vs Distancia (<span class="variable-name">x</span>) se genera automáticamente tras el cálculo exitoso.</li>
+                <li>Utilice el recuadro inferior para ingresar una Distancia <span class="variable-name">x</span> específica y presionar "Ver concentración en X" para calcular la <span class="variable-name">C<sub>x</sub></span> en ese punto del perfil.</li>
+                <li>Función Interactiva: Al mover el ratón sobre la curva, podrá ver el par de valores (<span class="variable-name">x</span>, <span class="variable-name">C<sub>x</sub></span>) en cualquier punto del perfil.</li>
+            </ul>
+        </div>
+
+        <div class="footer-message">
+            ¡Esta calculadora forma parte del proyecto MetFisTIC "Módulo TIC de Autoestudio que incorpora Simulaciones e IA para Aprendizaje de Conceptos Fundamentales sobre Metalurgia Física", dirigido por los profesores Pedro Delvasto y Walter Pardavé. MetFisTIC fue financiado por la Vicerrectoría Académica de la Universidad Industrial de Santander (2025). La calculadora fue elaborada por Andrés Felipe Caro Miranda y revisada por Alisson Vanessa Guerrero Salcedo!.
+        </div>
+
+    </div>
+
+    <script>
+        // --- CONSTANTES Y TABLA DE ERF ---
+        const CONVERSION_X = {
+            'm': 1, 'cm': 0.01, 'mm': 0.001, 'pies': 0.3048, 'pulgadas': 0.0254
+        };
+        const CONVERSION_t = {
+            's': 1, 'min': 60, 'h': 3600
+        };
+        const ERF_TABLE = [
+            [0, 0], [0.025, 0.0282], [0.05, 0.0564], [0.10, 0.1125], [0.15, 0.1680],
+            [0.20, 0.2227], [0.25, 0.2763], [0.30, 0.3286], [0.35, 0.3794], [0.40, 0.4284],
+            [0.45, 0.4755], [0.50, 0.5205], [0.55, 0.5633], [0.60, 0.6039], [0.65, 0.6420],
+            [0.70, 0.6778], [0.75, 0.7112], [0.80, 0.7421], [0.85, 0.7707], [0.90, 0.7970],
+            [0.95, 0.8209], [1.0, 0.8427], [1.1, 0.8802], [1.2, 0.9103], [1.3, 0.9340],
+            [1.4, 0.9523], [1.5, 0.9661], [1.6, 0.9763], [1.7, 0.9838], [1.8, 0.9891],
+            [1.9, 0.9928], [2.0, 0.9953], [2.2, 0.9981], [2.4, 0.9993], [2.6, 0.9998],
+            [2.8, 0.9999], [3.0, 0.99999] // Añadido un valor superior para mejor interpolación
+        ];
+        
+        // Objeto para manejar la gráfica de Chart.js
+        let fickChart;
+
+        // --- MANEJO DE ENTRADA Y CONVERSIONES ---
+        
+        /**
+         * Parsea la entrada del usuario, manejando comas y notación científica.
+         * @param {string} value - El valor de entrada.
+         * @returns {number | null} - El número parseado o null si es inválido.
+         */
+        function parseInput(value) {
+            if (typeof value !== 'string') return null;
+            // Reemplazar coma por punto para el parseo JS
+            const cleanValue = value.trim().replace(',', '.');
+            if (!cleanValue) return null;
+            // Manejar notación científica (ej: 3e-11) y números estándar
+            const num = Number(cleanValue);
+            return isFinite(num) ? num : null;
+        }
+
+        /**
+         * Convierte el valor de entrada a la unidad interna (metros o segundos).
+         */
+        function convertirAInterna(valor, unidad, tipo) {
+            const conversionMap = tipo === 'X' ? CONVERSION_X : CONVERSION_t;
+            return valor * conversionMap[unidad];
+        }
+
+        /**
+         * Convierte el valor de la unidad interna a la unidad de salida.
+         */
+        function convertirASalida(valor, unidad, tipo) {
+            const conversionMap = tipo === 'X' ? CONVERSION_X : CONVERSION_t;
+            // La conversión es el valor interno dividido por el factor de la unidad de salida
+            return valor / conversionMap[unidad];
+        }
+
+        /**
+         * Formatea un número para la salida, usando notación científica si es muy pequeño.
+         * @param {number} num - Número a formatear.
+         * @param {string} unit - Unidad para mostrar.
+         * @returns {string} - Cadena de texto formateada.
+         */
+        function formatOutput(num, unit = '') {
+            // Usar notación científica para números muy grandes o muy pequeños.
+            if (Math.abs(num) > 1e6 || (Math.abs(num) < 1e-4 && Math.abs(num) > 0)) {
+                return num.toExponential(4).replace('.', ',');
+            }
+            // Para otros, usar 5 decimales.
+            return num.toFixed(5).replace('.', ',') + ' ' + unit;
+        }
+
+        // --- FUNCIÓN DE ERROR (ERF) E INTERPOLACIÓN ---
+
+        /**
+         * Realiza interpolación lineal.
+         * @param {number} x - El valor de entrada a interpolar.
+         * @param {number} x1 - Punto inferior de la variable de entrada.
+         * @param {number} y1 - Punto inferior de la variable de salida.
+         * @param {number} x2 - Punto superior de la variable de entrada.
+         * @param {number} y2 - Punto superior de la variable de salida.
+         * @returns {number} - Valor interpolado.
+         */
+        function interpolar(x, x1, y1, x2, y2) {
+            if (x1 === x2) return y1; // Evitar división por cero
+            return y1 + (x - x1) * (y2 - y1) / (x2 - x1);
+        }
+
+        /**
+         * Calcula erf(z) usando interpolación.
+         * @param {number} z - El argumento de la función de error (X / 2*sqrt(D*t)).
+         * @returns {number} - El valor erf(z) interpolado.
+         */
+        function calcularErf(z) {
+            if (z < 0) return -calcularErf(-z); // erf es una función impar
+            if (z >= ERF_TABLE[ERF_TABLE.length - 1][0]) return 1; // Fuera del rango superior (erf -> 1)
+            
+            for (let i = 0; i < ERF_TABLE.length - 1; i++) {
+                const [z1, erf1] = ERF_TABLE[i];
+                const [z2, erf2] = ERF_TABLE[i + 1];
+
+                if (z >= z1 && z <= z2) {
+                    return interpolar(z, z1, erf1, z2, erf2);
+                }
+            }
+            return 1; // Caso de fallo, aunque no debería ocurrir si z >= 0
+        }
+
+        /**
+         * Calcula z (el inverso de erf) usando interpolación.
+         * @param {number} E - El valor de la función de error (erf(z)).
+         * @returns {number} - El argumento z interpolado.
+         */
+        function calcularZ(E) {
+            if (E < 0 || E > 1) {
+                // Manejo de valores que no tienen solución en la tabla
+                return (E > 1) ? 3.0 : -1; // Retornar un valor grande para E>1, o -1 para error
+            }
+            if (E === 0) return 0;
+            if (E === 1) return 3.0; // Valor aproximado (erf(3) es 0.9999779)
+
+            for (let i = 0; i < ERF_TABLE.length - 1; i++) {
+                const [z1, erf1] = ERF_TABLE[i];
+                const [z2, erf2] = ERF_TABLE[i + 1];
+
+                if (E >= erf1 && E <= erf2) {
+                    // Interpolamos para encontrar z a partir de E
+                    return interpolar(E, erf1, z1, erf2, z2);
+                }
+            }
+            return 3.0; // En caso de que E sea muy cercano a 1
+        }
+
+        // --- LÓGICA DE LA CALCULADORA ---
+
+        /**
+         * Obtiene los valores de entrada y los convierte a unidades internas.
+         * @returns {object} - Un objeto con los valores numéricos y la incógnita.
+         */
+        function obtenerDatos() {
+            const unknown = document.getElementById('unknown-selector').value;
+            const data = { unknown };
+            const ids = ['Cs', 'C0', 'Cx', 'X', 'D', 't'];
+
+            for (const id of ids) {
+                if (id !== unknown) {
+                    const input = document.getElementById(id);
+                    let value = parseInput(input ? input.value : '');
+
+                    if (value === null) {
+                        return { error: `Debe ingresar un valor válido para la variable ${id.replace('C', 'C<sub>')} ${id.length > 1 ? '</sub>' : ''}`.replace('C<sub>x</sub>', 'C<sub>x</sub>').replace('C<sub>s</sub>', 'C<sub>s</sub>').replace('C<sub>0</sub>', 'C<sub>0</sub>')};
+                    }
+                    
+                    if (id === 'X') {
+                        const unitX = document.getElementById('unit-X').value;
+                        data[id] = convertirAInterna(value, unitX, 'X');
+                        data['unitX'] = unitX; // Guardar la unidad de entrada de X
+                    } else if (id === 't') {
+                        const unitT = document.getElementById('unit-t').value;
+                        data[id] = convertirAInterna(value, unitT, 't');
+                        data['unitT'] = unitT; // Guardar la unidad de entrada de t
+                    } else {
+                        data[id] = value;
+                    }
+                }
+            }
+            
+            // Obtener la unidad de salida deseada si aplica
+            if (['X', 't'].includes(unknown)) {
+                data['outputUnit'] = document.getElementById('output-unit').value;
+            }
+
+            return data;
+        }
+
+        /**
+         * Realiza el cálculo basado en la incógnita seleccionada.
+         */
+        function calcular() {
+            const data = obtenerDatos();
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '';
+
+            if (data.error) {
+                resultsDiv.style.backgroundColor = '#f8d7da';
+                resultsDiv.style.color = '#721c24';
+                resultsDiv.innerHTML = `<strong>Error de entrada:</strong> ${data.error}`;
+                generarGraficaVacia(); // Limpiar gráfica
+                return;
+            }
+
+            const { unknown, Cs, C0, Cx, X, D, t } = data;
+            let result = null;
+            let resultZ = null;
+            let resultE = null;
+            let unknown_display = unknown.replace('C', 'C<sub>').replace('X', 'X').replace('D', 'D').replace('t', 't');
+            if(unknown.length > 1) unknown_display += '</sub>';
+
+            resultsDiv.style.backgroundColor = '#e9ecef';
+            resultsDiv.style.color = '#333';
+
+            try {
+                if (unknown === 'Cx' || unknown === 'Cs' || unknown === 'C0') {
+                    // 1. Calcular z
+                    if (D <= 0 || t <= 0) throw new Error("D y t deben ser positivos para el cálculo de z.");
+                    resultZ = X / (2 * Math.sqrt(D * t));
+                    
+                    // 2. Calcular erf(z) = E
+                    resultE = calcularErf(resultZ);
+                    
+                    // 3. Despejar la concentración incógnita de E = (Cs - Cx) / (Cs - C0)
+                    if (unknown === 'Cs' && Cs === undefined) { // Solo si Cs es la incógnita
+                        if (C0 === undefined || Cx === undefined) throw new Error("Faltan C₀ o Cₓ para calcular Cₛ.");
+                        if (resultE === 1) throw new Error("Erf(z) es 1, lo que hace la ecuación indefinida para Cₛ con C₀. Revise los datos.");
+                        result = (Cx - resultE * C0) / (1 - resultE);
+                    } else if (unknown === 'C0' && C0 === undefined) { // Solo si C0 es la incógnita
+                        if (Cs === undefined || Cx === undefined) throw new Error("Faltan Cₛ o Cₓ para calcular C₀.");
+                        if (resultE === 0) throw new Error("Erf(z) es 0, lo que hace la ecuación indefinida para C₀ con Cₛ. Revise los datos.");
+                        result = Cs - (Cs - Cx) / resultE;
+                    } else if (unknown === 'Cx' && Cx === undefined) { // Solo si Cx es la incógnita
+                        if (Cs === undefined || C0 === undefined) throw new Error("Faltan Cₛ o C₀ para calcular Cₓ.");
+                        result = Cs - resultE * (Cs - C0);
+                    } else {
+                        throw new Error("Error en la lógica de cálculo de concentraciones.");
+                    }
+                    
+                    if (result === Infinity || result === -Infinity || isNaN(result)) throw new Error("El resultado de concentración es indefinido o inválido. Revise los valores de entrada.");
+                    
+                    resultsDiv.innerHTML = `<strong>Resultado:</strong> ${unknown_display} = ${formatOutput(result)} %átomos`;
+
+                } else if (unknown === 'X' || unknown === 'D' || unknown === 't') {
+                    // 1. Calcular E = (Cs - Cx) / (Cs - C0)
+                    if (Cs === C0) throw new Error("Cₛ y C₀ son iguales, no hay gradiente de concentración. Revise los valores de Cₛ y C₀.");
+                    resultE = (Cs - Cx) / (Cs - C0);
+                    
+                    if (resultE < 0 || resultE > 1.0) throw new Error(`El valor E = ${formatOutput(resultE)} está fuera del rango de erf (0 a 1), revise las concentraciones: Cₛ > Cₓ > C₀ o C₀ > Cₓ > Cₛ.`);
+                    
+                    // 2. Calcular z = erf⁻¹(E)
+                    resultZ = calcularZ(resultE);
+                    if (resultZ < 0) throw new Error("No se pudo encontrar un valor de z para el E calculado. Revise las concentraciones.");
+                    
+                    // 3. Despejar la incógnita de z = X / (2*sqrt(D*t))
+                    if (unknown === 'X' && X === undefined) {
+                        if (D <= 0 || t <= 0) throw new Error("D y t deben ser positivos para calcular X.");
+                        result = resultZ * (2 * Math.sqrt(D * t));
+                        const finalUnit = data.outputUnit;
+                        result = convertirASalida(result, finalUnit, 'X');
+                        resultsDiv.innerHTML = `<strong>Resultado:</strong> ${unknown_display} = ${formatOutput(result, finalUnit)}`;
+                    } else if (unknown === 'D' && D === undefined) {
+                        if (t <= 0 || resultZ === 0) throw new Error("t debe ser positivo y z no puede ser cero para calcular D.");
+                        result = (X * X) / (4 * t * resultZ * resultZ);
+                        resultsDiv.innerHTML = `<strong>Resultado:</strong> ${unknown_display} = ${formatOutput(result)} m²/s`;
+                    } else if (unknown === 't' && t === undefined) {
+                        if (D <= 0 || resultZ === 0) throw new Error("D debe ser positivo y z no puede ser cero para calcular t.");
+                        result = (X * X) / (4 * D * resultZ * resultZ);
+                        const finalUnit = data.outputUnit;
+                        result = convertirASalida(result, finalUnit, 't');
+                        resultsDiv.innerHTML = `<strong>Resultado:</strong> ${unknown_display} = ${formatOutput(result, finalUnit)}`;
+                    } else {
+                        throw new Error("Error en la lógica de cálculo de X, D o t.");
+                    }
+                } else {
+                    throw new Error("Por favor, seleccione una incógnita para calcular.");
+                }
+                
+                // Guardar los últimos datos calculados para la gráfica
+                Object.assign(lastCalculatedData, data); // Copia los datos originales
+                // Actualizar el valor de la variable calculada en unidades internas
+                if (unknown === 'X') {
+                    lastCalculatedData[unknown] = convertirAInterna(result, data.outputUnit, unknown);
+                } else if (unknown === 't') {
+                    lastCalculatedData[unknown] = convertirAInterna(result, data.outputUnit, unknown);
+                } else {
+                    lastCalculatedData[unknown] = result;
+                }
+                lastCalculatedData.displayUnitX = (unknown === 'X') ? data.outputUnit : data.unitX;
+
+                // Generar Gráfica después del cálculo exitoso
+                generarGrafica();
+
+                // Mensaje intermedio limpio
+                const intermediateResults = document.createElement('p');
+                intermediateResults.innerHTML = `*Valores Intermedios: E = erf(z) = ${formatOutput(resultE)} | z = ${formatOutput(resultZ)}`;
+                resultsDiv.appendChild(intermediateResults);
+
+            } catch (e) {
+                resultsDiv.style.backgroundColor = '#f8d7da';
+                resultsDiv.style.color = '#721c24';
+                resultsDiv.innerHTML = `<strong>Error de Cálculo:</strong> ${e.message}`;
+                generarGraficaVacia(); // Limpiar gráfica en caso de error
+            }
+        }
+        
+        let lastCalculatedData = {}; // Objeto para almacenar los últimos datos para la gráfica
+
+        // --- LÓGICA DE GRÁFICOS ---
+        
+        /**
+         * Calcula Cx a una distancia X, dada la D y t.
+         * @param {number} currentX_m - Distancia en metros.
+         * @param {object} knownData - Datos C0, Cs, D, t (en unidades internas).
+         * @returns {number} - Concentración Cx en %átomos.
+         */
+        function calculateCxAtX(currentX_m, knownData) {
+            const { Cs, C0, D, t } = knownData;
+            // Manejo de casos límite para evitar NaN o Infinity
+            if (D <= 0 || t <= 0) return C0; 
+            
+            const z = currentX_m / (2 * Math.sqrt(D * t));
+            const E = calcularErf(z);
+            
+            // Cs - Cx = E * (Cs - C0)
+            // Cx = Cs - E * (Cs - C0)
+            return Cs - E * (Cs - C0);
+        }
+
+        /**
+         * Genera y muestra la gráfica de C vs X.
+         */
+        function generarGrafica() {
+            const { Cs, C0, D, t, X, displayUnitX } = lastCalculatedData;
+
+            if (!Cs || !C0 || !D || !t || !X || Cs === undefined || C0 === undefined || D === undefined || t === undefined || X === undefined) {
+                generarGraficaVacia();
+                return;
+            }
+
+            const conversionFactor = CONVERSION_X[displayUnitX];
+            const originalDisplayX = X / conversionFactor; 
+            
+            // AUMENTO DEL 50% PARA VISUALIZAR EL EQUILIBRIO
+            const maxDisplayX = originalDisplayX * 1.5; // Extender el eje X un 50%
+            
+            // Generar puntos para la curva
+            const points = [];
+            const numSteps = 100; // Número de puntos para la suavidad de la curva
+            const step = maxDisplayX / numSteps;
+            
+            const knownData = { Cs, C0, D, t };
+            
+            for (let i = 0; i <= numSteps; i++) {
+                const currentDisplayX = i * step;
+                const currentX_m = currentDisplayX * conversionFactor; // Convertir X de vuelta a metros
+                const Cx = calculateCxAtX(currentX_m, knownData);
+                
+                points.push({ x: currentDisplayX, y: Cx });
+            }
+
+            const ctx = document.getElementById('fick-chart').getContext('2d');
+            
+            // Destruir la gráfica anterior si existe
+            if (fickChart) {
+                fickChart.destroy();
+            }
+
+            fickChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [{
+                        label: 'Perfil de Concentración',
+                        data: points,
+                        parsing: { xAxisKey: 'x', yAxisKey: 'y' },
+                        borderColor: '#007bff',
+                        borderWidth: 3,
+                        pointRadius: 0,
+                        fill: false,
+                        tension: 0.4 // Suavizar la curva
+                    },
+                    // Línea de C0 para visualización de equilibrio
+                    {
+                        label: 'Concentración Inicial (C₀)',
+                        data: [{x: 0, y: C0}, {x: maxDisplayX, y: C0}],
+                        borderColor: '#dc3545',
+                        borderWidth: 1,
+                        borderDash: [5, 5],
+                        pointRadius: 0,
+                        fill: false
+                    }
+                ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false, // Importante para controlar alto y ancho con CSS
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            position: 'bottom',
+                            title: { display: true, text: `Distancia X (${displayUnitX})` },
+                            min: 0,
+                            max: maxDisplayX, // Eje X extendido
+                        },
+                        y: {
+                            title: { display: true, text: 'Concentración C (%átomos)' },
+                            min: 0,
+                            max: Math.max(Cs, C0) * 1.05, // Asegurar que Cs sea visible, con un margen
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toFixed(2).replace('.', ','); // Formato con coma y 2 decimales
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        /**
+         * Genera una gráfica vacía o limpia.
+         */
+        function generarGraficaVacia() {
+             if (fickChart) {
+                 fickChart.destroy();
+             }
+             const ctx = document.getElementById('fick-chart').getContext('2d');
+             fickChart = new Chart(ctx, {
+                 type: 'line',
+                 data: { datasets: [] },
+                 options: {
+                     responsive: true,
+                     maintainAspectRatio: false,
+                     scales: {
+                         x: { type: 'linear', position: 'bottom', title: { display: true, text: 'Distancia X' }, min: 0, max: 1 },
+                         y: { title: { display: true, text: 'Concentración C (%átomos)' }, min: 0, max: 1 }
+                     },
+                     plugins: {
+                         tooltip: { enabled: false }
+                     }
+                 }
+             });
+             // Limpiar también el cuadro de interacción
+             document.getElementById('check-X').value = '';
+             document.getElementById('check-C').value = '';
+             document.getElementById('check-result').innerHTML = '';
+        }
+        
+        /**
+         * Calcula y muestra Cx para una X dada en el recuadro de análisis.
+         */
+        function checkPoint() {
+            const checkXInput = document.getElementById('check-X');
+            const checkCResult = document.getElementById('check-C');
+            const checkResultP = document.getElementById('check-result');
+            checkCResult.value = '';
+            checkResultP.innerHTML = '';
+
+            const { Cs, C0, D, t, displayUnitX } = lastCalculatedData;
+
+            if (!Cs || !C0 || !D || !t || Cs === undefined || C0 === undefined || D === undefined || t === undefined) {
+                checkResultP.innerHTML = `<span style="color:red;">Error: Realice un cálculo primero para generar la gráfica.</span>`;
+                return;
+            }
+
+            const currentDisplayXValue = parseInput(checkXInput.value);
+            if (currentDisplayXValue === null) {
+                checkResultP.innerHTML = `<span style="color:red;">Ingrese una Distancia X válida.</span>`;
+                return;
+            }
+            
+            // Convertir la X de análisis a metros (usando la unidad de visualización de la gráfica)
+            const conversionFactor = CONVERSION_X[displayUnitX];
+            const currentX_m = currentDisplayXValue * conversionFactor;
+            
+            const knownData = { Cs, C0, D, t };
+            const Cx = calculateCxAtX(currentX_m, knownData);
+
+            checkCResult.value = formatOutput(Cx, '').replace(',', '.'); // Usar punto para el input text
+            checkResultP.innerHTML = `<span style="color:green;">Concentración a ${formatOutput(currentDisplayXValue, displayUnitX)}: **${formatOutput(Cx, '%átomos')}**</span>`;
+        }
+        
+        // --- MANEJO DE INTERFAZ (TABS Y SELECTOR DE INCÓGNITA) ---
+        
+        /**
+         * Muestra/Oculta la pestaña de contenido seleccionada.
+         */
+        function openTab(evt, tabName) {
+            const tabContents = document.getElementsByClassName("tab-content");
+            for (let i = 0; i < tabContents.length; i++) {
+                tabContents[i].style.display = "none";
+            }
+            
+            const tabButtons = document.getElementsByClassName("tab-button");
+            for (let i = 0; i < tabButtons.length; i++) {
+                tabButtons[i].className = tabButtons[i].className.replace(" active", "");
+            }
+            
+            document.getElementById(tabName).style.display = "block";
+            evt.currentTarget.className += " active";
+
+            // Si se abre la pestaña de calculadora, asegurar que la gráfica se inicialice
+            if (tabName === 'calculator') {
+                 generarGraficaVacia(); // O generarGrafica() si se quiere mostrar la última calculada
+            }
+        }
+        
+        /**
+         * Muestra/Oculta la subsección de teoría seleccionada.
+         */
+        function openTheoryTab(evt, tabName) {
+            const tabContents = document.querySelectorAll("#theory .theory-content");
+            tabContents.forEach(content => content.style.display = "none");
+            
+            const tabButtons = document.querySelectorAll("#theory .theory-tab-button");
+            tabButtons.forEach(button => button.className = button.className.replace(" active", ""));
+            
+            document.getElementById(tabName).style.display = "block";
+            evt.currentTarget.className += " active";
+        }
+
+        /**
+         * Actualiza la interfaz para ocultar la incógnita y mostrar el selector de unidad de salida.
+         */
+        function actualizarInterfaz() {
+            const unknown = document.getElementById('unknown-selector').value;
+            const groups = ['group-Cs', 'group-C0', 'group-Cx', 'group-X', 'group-D', 'group-t'];
+            const outputUnitDiv = document.getElementById('output-unit-selection');
+            const outputUnitSelect = document.getElementById('output-unit');
+            
+            // 1. Mostrar todos los grupos primero
+            groups.forEach(id => {
+                document.getElementById(id).style.display = 'flex';
+            });
+            
+            // 2. Ocultar el grupo de la incógnita
+            if (unknown) {
+                const unknownId = `group-${unknown}`;
+                if (document.getElementById(unknownId)) {
+                    document.getElementById(unknownId).style.display = 'none';
+                }
+            }
+            
+            // 3. Manejar el selector de unidad de salida
+            outputUnitDiv.style.display = 'none';
+            outputUnitSelect.innerHTML = ''; // Limpiar opciones anteriores
+            
+            if (unknown === 'X') {
+                outputUnitDiv.style.display = 'block';
+                const units = CONVERSION_X;
+                for (const key in units) {
+                    const option = document.createElement('option');
+                    option.value = key;
+                    // Uso de texto limpio para las opciones de unidad, incluyendo ft/in
+                    let text;
+                    if (key === 'm') text = 'metros (m)';
+                    else if (key === 'cm') text = 'centímetros (cm)';
+                    else if (key === 'mm') text = 'milímetros (mm)';
+                    else if (key === 'pies') text = 'pies (ft)';
+                    else if (key === 'pulgadas') text = 'pulgadas (in)';
+                    option.text = text;
+                    outputUnitSelect.appendChild(option);
+                }
+            } else if (unknown === 't') {
+                outputUnitDiv.style.display = 'block';
+                const units = CONVERSION_t;
+                for (const key in units) {
+                    const option = document.createElement('option');
+                    option.value = key;
+                    // Uso de texto limpio para las opciones de unidad
+                    option.text = `${key} (${key === 's' ? 'segundos' : key === 'min' ? 'minutos' : key === 'h' ? 'horas' : key})`;
+                    outputUnitSelect.appendChild(option);
+                }
+            }
+            // Limpiar resultados y gráfica al cambiar la incógnita
+            document.getElementById('results').innerHTML = '';
+            generarGraficaVacia();
+        }
+        
+        // Inicialización al cargar la página
+        window.onload = () => {
+            // Asegura que solo la primera pestaña esté activa al inicio
+            document.getElementById('calculator').style.display = 'block';
+            document.getElementById('theory').style.display = 'none';
+            document.getElementById('manual').style.display = 'none';
+
+            // Asegura que solo la primera subsección de teoría esté activa al inicio
+            openTheoryTab({ currentTarget: document.querySelector('#theory .theory-tab-button') }, 'teoria');
+            
+            // Inicializar la interfaz de la calculadora
+            actualizarInterfaz();
+            generarGraficaVacia(); // Asegurar que la gráfica esté limpia al inicio
+        };
+
+    </script>
+</body>
+</html>
